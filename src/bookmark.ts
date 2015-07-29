@@ -10,11 +10,12 @@ module Types {
                    ) {}
 
         static build(node: HTMLScriptElement){
+            var tag = node.getAttribute('tag');
             return new Bookmark(
                 node.getAttribute('href'),
                 node.getAttribute('description'),
                 node.getAttribute('extended'),
-                node.getAttribute('tag').split(' '),
+                tag.length > 0 ? node.getAttribute('tag').split(' ') : [],
                 (new Date(node.getAttribute('time'))).getTime(),
                 true, // TODO
                 false

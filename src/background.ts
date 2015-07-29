@@ -15,4 +15,30 @@ function allBookmarks (cb: (bookmarks: Types.Bookmark[]) => void) {
     cache.getBookmarks(api, cb);
 }
 
-allBookmarks(function(bookmarks){ console.log(bookmarks) });
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
+    console.log("Received request.");
+    if (request.message == "getBookmarks"){
+        allBookmarks(function(bookmarks){
+            console.log("Dug up " + bookmarks.length + " bookmarks.");
+            var tags : string[] = Object.keys(
+                bookmarks.reduce(function(tags, bookmark){
+                    for(var i = 0; i < bookmark.tags.length; i++){
+                        var tag = bookmark.tags[i];
+                        tags[tag] = true;
+                    }
+                    return tags;
+                }, {})
+            );
+
+            try {
+                sendResponse({
+                    bookmarks: bookmarks,
+                    tags: tags
+                });
+            } catch(err) { console.log(err) }
+        });
+    } else {
+        console.log("Unknown message type. Suppressed.");
+    }
+    return true; // Response will be sent async
+});
