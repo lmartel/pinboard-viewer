@@ -1,4 +1,9 @@
 module Types {
+    export interface BookmarkList {
+        bookmarks: Bookmark[];
+        tags: string[];
+    }
+
     export class Bookmark {
         constructor(public url: string,
                     public title: string,

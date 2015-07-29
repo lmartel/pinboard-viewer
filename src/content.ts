@@ -46,7 +46,6 @@ function getRaw(itemData : string): string {
 
 function updateControl(control : any, options : SearchItem[], activeTags : string[]){
     control.clearOptions();
-//    control.refreshOptions();
     control.addOption(options);
     for(var i = 0; i < activeTags.length; i++)
         control.addItem('tag:' + activeTags[i], true);
@@ -63,15 +62,26 @@ function protocolize(url : string){
 }
 
 declare var Selectize : any;
-var oldRegister = Selectize.prototype.registerOption;
-Selectize.prototype.registerOption = function(data){
-    delete data.$order;
-    return oldRegister.call(this, data);
-}
+(function(){
+    var oldRegister = Selectize.prototype.registerOption;
+    Selectize.prototype.registerOption = function(data){
+        delete data.$order;
+        return oldRegister.call(this, data);
+    }
+})();
 
-chrome.runtime.sendMessage({ message: "getBookmarks" }, function(response) {
-    console.log("Received response");
+var port = chrome.runtime.connect({ name: "bookmarks" });
 
+var selectizeControl;
+var activeTags : string[] = [];
+port.onMessage.addListener(function(response) {
+    if (!(response.bookmarks && response.tags)){
+        console.log("Unknown message received, ignoring:")
+        console.log(response);
+        return;
+    }
+
+    if (selectizeControl) selectizeControl.destroy();
     var tags : SearchTag[] = response.tags.map(function(tag : string) {
         var tagObj = {
             title: '#' + tag,
@@ -91,7 +101,7 @@ chrome.runtime.sendMessage({ message: "getBookmarks" }, function(response) {
     var allOpts : SearchItem[] = (<SearchItem[]> allBookmarks).concat(tags);
 
     $('#search-loading').hide();
-    var control = $('#search').selectize({
+    var control = selectizeControl = $('#search').selectize({
         delimiter: ' ',
         create: false,
         maxItems: null,
@@ -99,12 +109,11 @@ chrome.runtime.sendMessage({ message: "getBookmarks" }, function(response) {
         labelField: 'title',
         valueField: 'data',
         searchField: ['title', 'url'],
-        options: allOpts
+        options: filterBy(allOpts, activeTags)
     })[0].selectize;
 
     var exit = function() { window.close() };
 
-    var activeTags : string[] = [];
     var activeOptions : SearchItem[] = allOpts;
 
     var itemAdd = function(itemData : string){
@@ -152,3 +161,5 @@ chrome.runtime.sendMessage({ message: "getBookmarks" }, function(response) {
     $('#search-container').show();
     control.focus();
 });
+
+port.postMessage({ message: "getBookmarks" });

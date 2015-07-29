@@ -6,39 +6,58 @@
 var chrome: any;
 var chromeLocalStorage : Cache.CacheStorage = chrome.storage.local;
 
-function debug(o){ console.log(o); return o; }
-
-function allBookmarks (cb: (bookmarks: Types.Bookmark[]) => void) {
+var state = (function(){
     var secret = new Secret.SecretToken();
     var api = new API.PinboardAPI(secret);
     var cache = new Cache.BookmarkCache(chromeLocalStorage);
-    cache.getBookmarks(api, cb);
+    return {
+        secret: secret,
+        api: api,
+        cache: cache
+    };
+})()
+
+function debug(o){ console.log(o); return o; }
+
+function extractTags (bookmarks : Types.Bookmark[]): Types.BookmarkList {
+    var tags : string[] = Object.keys(
+        bookmarks.reduce(function(tags, bookmark){
+            for(var i = 0; i < bookmark.tags.length; i++){
+                var tag = bookmark.tags[i];
+                tags[tag] = true;
+            }
+            return tags;
+        }, {})
+    );
+
+    return {
+        bookmarks: bookmarks,
+        tags: tags
+    };
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
-    console.log("Received request.");
-    if (request.message == "getBookmarks"){
-        allBookmarks(function(bookmarks){
-            console.log("Dug up " + bookmarks.length + " bookmarks.");
-            var tags : string[] = Object.keys(
-                bookmarks.reduce(function(tags, bookmark){
-                    for(var i = 0; i < bookmark.tags.length; i++){
-                        var tag = bookmark.tags[i];
-                        tags[tag] = true;
-                    }
-                    return tags;
-                }, {})
-            );
+function tryPost(port, msg){
+    try {
+        port.postMessage(msg);
+    } catch(err) { console.log(err) }
+}
 
-            try {
-                sendResponse({
-                    bookmarks: bookmarks,
-                    tags: tags
+chrome.runtime.onConnect.addListener(function(port){
+    console.log("Received connection request.");
+    console.assert(port.name == "bookmarks");
+    port.onMessage.addListener(function(request){
+        if (request.message == "getBookmarks"){
+            state.cache.getLocalBookmarks(function(cachedBookmarks : Cache.CachedBookmarks){
+                tryPost(port, extractTags(cachedBookmarks.bookmarks));
+
+                state.cache.getBookmarks(state.api, function(refreshedBookmarks : Cache.CachedBookmarks){
+                    if (cachedBookmarks.updated < refreshedBookmarks.updated)
+                        tryPost(port, extractTags(refreshedBookmarks.bookmarks));
                 });
-            } catch(err) { console.log(err) }
-        });
-    } else {
-        console.log("Unknown message type. Suppressed.");
-    }
-    return true; // Response will be sent async
+            });
+        } else {
+            console.log("Unknown message type. Suppressed.");
+        }
+        return true; // Response will be sent async
+    });
 });

@@ -1,20 +1,31 @@
 /// <reference path="constants.ts" />
 /// <reference path="bookmark.ts" />
 /// <reference path="api.ts" />
+declare var chrome: any;
+
 module Cache {
     export interface CacheStorage {
         get(keys: any, callback: (data: any) => void): void;
         set(kvPairs: any, after: () => void): void;
     }
 
+    export interface CachedBookmarks {
+        bookmarks: Types.Bookmark[];
+        updated: Date;
+    }
+
     export class BookmarkCache {
         constructor(private storage: CacheStorage) {};
 
-        getBookmarks(api : API.PinboardAPI, clientcb : (bookmarks : Types.Bookmark[]) => void): void {
+        getBookmarks(api : API.PinboardAPI, clientcb : (bookmarks : CachedBookmarks) => void): void {
             var _self = this;
             api.getModifiedDate(function(latestUpdate){
                 var cacheBeforeCallback = function(bookmarks){
-                    _self.setBookmarks(latestUpdate, bookmarks, clientcb);
+                    var record = {
+                        bookmarks: bookmarks,
+                        updated: latestUpdate
+                    }
+                    _self.setBookmarks(record, clientcb);
                 }
 
                 _self.storage.get(LATEST_UPDATE, function(data : Object) {
@@ -34,25 +45,38 @@ module Cache {
                         });
                     } else {
                         console.log("Cache up-to-date; latest bookmark was updated " + prevUpdate);
-                        _self.getBookmarksFromStorage(clientcb);
+                        _self.getLocalBookmarks(clientcb);
                     }
                 });
             });
         };
 
-        private setBookmarks(currentUpdate : Date, bookmarks : Types.Bookmark[], cb){
-            var kv = {};
-            kv[LATEST_UPDATE] = currentUpdate.toString();
-            kv[BOOKMARKS] = bookmarks;
-            this.storage.set(kv, function(){
-                if(chrome && chrome.runtime.lastError) console.log("CACHE PUT FAILED");
+        getLocalBookmarks(cb : (bookmarks : CachedBookmarks) => void): void {
+            var _self = this;
+            _self.storage.get(LATEST_UPDATE, function(updata : Object) {
+                var updated = updata[LATEST_UPDATE];
+                _self.getBookmarksFromStorage(function(bookmarks){
+                    cb({
+                        bookmarks: bookmarks,
+                        updated: updated
+                    });
+                });
+            });
+        }
+
+        private getBookmarksFromStorage(cb : (bookmarks: Types.Bookmark[]) => void): void {
+            this.storage.get(BOOKMARKS, function(data : Object) {
+                var bookmarks : Types.Bookmark[] = data[BOOKMARKS];
                 cb(bookmarks);
             });
         }
 
-        private getBookmarksFromStorage(cb){
-            this.storage.get(BOOKMARKS, function(data : Object) {
-                var bookmarks : Types.Bookmark[] = data[BOOKMARKS];
+        private setBookmarks(bookmarks : CachedBookmarks, cb){
+            var kv = {};
+            kv[LATEST_UPDATE] = bookmarks.updated.toString();
+            kv[BOOKMARKS] = bookmarks.bookmarks;
+            this.storage.set(kv, function(){
+                if(chrome && chrome.runtime.lastError) console.log("CACHE PUT FAILED");
                 cb(bookmarks);
             });
         }
