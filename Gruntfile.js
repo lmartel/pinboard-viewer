@@ -28,7 +28,7 @@ module.exports = function (grunt) {
             },
             // a particular target
             devBackend: {
-                src: ['src/*.ts', 'lib/*.ts', '!src/content.ts'],          // The source typescript files, http://gruntjs.com/configuring-tasks#files
+                src: ['src/*.ts', 'src/lib/*.ts', '!src/content.ts'],          // The source typescript files, http://gruntjs.com/configuring-tasks#files
                 // html: ['app/**/**.tpl.html'],  // The source html files, https://github.com/basarat/grunt-ts#html-2-typescript-support
                 // reference: 'app/reference.ts', // If specified, generate this file that you can use for your reference management
                 // outDir: 'js',

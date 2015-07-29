@@ -4,6 +4,21 @@ declare var chrome: any;
 declare var $: any;
 declare var _: any;
 
+// Patch bug in Selectize library: preserves hidden `order` field on deleted-and-readded options
+declare var Selectize : any;
+(function(){
+    var oldRegister = Selectize.prototype.registerOption;
+    Selectize.prototype.registerOption = function(data){
+        delete data.$order;
+        return oldRegister.call(this, data);
+    }
+})();
+
+var BOOKMARKS = "localStorage::bookmarks";
+var TAGS = "localStorage::tags";
+var OPTIONS = "localStorage::selectize::options";
+var IS_CACHED = "localStorage::isCached";
+
 interface SearchItem {
     title: string;
     url: string;
@@ -61,68 +76,33 @@ function protocolize(url : string){
     return 'http://' + url;
 }
 
-declare var Selectize : any;
-(function(){
-    var oldRegister = Selectize.prototype.registerOption;
-    Selectize.prototype.registerOption = function(data){
-        delete data.$order;
-        return oldRegister.call(this, data);
-    }
-})();
+(function(){ // main IO functions; closure to protect helpers above from mutable state
 
-var port = chrome.runtime.connect({ name: "bookmarks" });
+    var port = chrome.runtime.connect({ name: "bookmarks" });
+    var selectizeControl;
+    var allOpts : SearchItem[];
+    var activeTags : string[] = [];
+    var activeOptions : SearchItem[];
 
-var selectizeControl;
-var activeTags : string[] = [];
-port.onMessage.addListener(function(response) {
-    if (!(response.bookmarks && response.tags)){
-        console.log("Unknown message received, ignoring:")
-        console.log(response);
-        return;
+    // Initialize bookmark search
+    port.onMessage.addListener(handleResponse);
+    if(localStorage[IS_CACHED]){
+        allOpts = JSON.parse(localStorage[OPTIONS]);
+        initializeSearch();
+        port.postMessage({ message: "getBookmarks" });
+    } else {
+        port.postMessage({ message: "getBookmarks" });
     }
 
-    if (selectizeControl) selectizeControl.destroy();
-    var tags : SearchTag[] = response.tags.map(function(tag : string) {
-        var tagObj = {
-            title: '#' + tag,
-            url: '#' + tag,
-            data: "tag:" + tag
-        }
-        return tagObj;
-    });
-    tags.sort(titleCmp);
+    // Handler functions
 
-    var allBookmarks : SearchBookmark[] = response.bookmarks.map(function(bookmark){
-        bookmark.data = "bookmark:" + bookmark.url
-        return bookmark;
-    });
-    allBookmarks.sort(titleCmp);
-
-    var allOpts : SearchItem[] = (<SearchItem[]> allBookmarks).concat(tags);
-
-    $('#search-loading').hide();
-    var control = selectizeControl = $('#search').selectize({
-        delimiter: ' ',
-        create: false,
-        maxItems: null,
-        maxOptions: 1000,
-        labelField: 'title',
-        valueField: 'data',
-        searchField: ['title', 'url'],
-        options: filterBy(allOpts, activeTags)
-    })[0].selectize;
-
-    var exit = function() { window.close() };
-
-    var activeOptions : SearchItem[] = allOpts;
-
-    var itemAdd = function(itemData : string){
+    function itemAdd(itemData : string){
         if (isTag(itemData)){
             unhandle();
             var tag = getRaw(itemData);
             activeTags.push(tag);
             activeOptions = filterBy(activeOptions, [tag]);
-            updateControl(control, activeOptions, activeTags);
+            updateControl(selectizeControl, activeOptions, activeTags);
             handle();
         } else {
             var url = getRaw(itemData);
@@ -131,7 +111,7 @@ port.onMessage.addListener(function(response) {
         }
     }
 
-    var itemRemove = function(itemData : string){
+    function itemRemove(itemData : string){
         if (!isTag(itemData)) return;
 
         unhandle();
@@ -139,27 +119,85 @@ port.onMessage.addListener(function(response) {
         activeTags.splice(i, 1);
         activeOptions = filterBy(allOpts, activeTags);
         console.log(activeOptions);
-        updateControl(control, activeOptions, activeTags);
+        updateControl(selectizeControl, activeOptions, activeTags);
         handle();
     }
 
-    var handle = function(){
-        control.on('item_add', itemAdd);
-        control.on('item_remove', itemRemove);
-        control.on('blur', exit);
-        control.on('dropdown_close', exit);
+    function handle(){
+        selectizeControl.on('item_add', itemAdd);
+        selectizeControl.on('item_remove', itemRemove);
+        selectizeControl.on('blur', exit);
+        selectizeControl.on('dropdown_close', exit);
     }
 
-    var unhandle = function(){
-        control.off('item_add', itemAdd);
-        control.off('item_remove', itemRemove);
-        control.off('blur', exit);
-        control.off('dropdown_close', exit);
+    function unhandle(){
+        selectizeControl.off('item_add', itemAdd);
+        selectizeControl.off('item_remove', itemRemove);
+        selectizeControl.off('blur', exit);
+        selectizeControl.off('dropdown_close', exit);
     }
 
-    handle();
-    $('#search-container').show();
-    control.focus();
-});
+    var exit = function() {
+        window.close()
+    };
 
-port.postMessage({ message: "getBookmarks" });
+    function initializeSearch(){
+        $('#search-loading').hide();
+        selectizeControl = $('#search').selectize({
+            delimiter: ' ',
+            create: false,
+            maxItems: null,
+            maxOptions: 1000,
+            labelField: 'title',
+            valueField: 'data',
+            searchField: ['title', 'url'],
+            options: filterBy(allOpts, activeTags)
+        })[0].selectize;
+
+        activeOptions = allOpts;
+
+        handle();
+        $('#search-container').show();
+        selectizeControl.focus();
+    }
+
+    function handleResponse(response) {
+
+        if (!(response.bookmarks && response.tags)){
+            console.log("Unknown message received, ignoring:")
+            console.log(response);
+            return;
+        }
+
+        var tags : SearchTag[] = response.tags.map(function(tag : string) {
+            var tagObj = {
+                title: '#' + tag,
+                url: '#' + tag,
+                data: "tag:" + tag
+            }
+            return tagObj;
+        });
+        tags.sort(titleCmp);
+
+        var allBookmarks : SearchBookmark[] = response.bookmarks.map(function(bookmark){
+            bookmark.data = "bookmark:" + bookmark.url
+            return bookmark;
+        });
+        allBookmarks.sort(titleCmp);
+
+        allOpts = (<SearchItem[]> allBookmarks).concat(tags);
+
+        if (selectizeControl){
+            if (localStorage[IS_CACHED] && JSON.stringify(allOpts) == localStorage[OPTIONS])
+                return;
+
+            selectizeControl.destroy();
+        }
+
+        localStorage[OPTIONS] = JSON.stringify(allOpts);
+        localStorage[IS_CACHED] = "true";
+
+        initializeSearch();
+    }
+
+})();
