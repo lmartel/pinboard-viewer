@@ -147,11 +147,22 @@ function protocolize(url : string){
             delimiter: ' ',
             create: false,
             maxItems: null,
-            maxOptions: 1000,
+            maxOptions: null,
+            selectOnTab: true,
             labelField: 'title',
             valueField: 'data',
             searchField: ['title', 'url'],
-            options: filterBy(allOpts, activeTags)
+            options: filterBy(allOpts, activeTags),
+            render: {
+                option: function(item, escape) {
+                    var label = item.title;
+                    var caption = item.url ? item.url : null;
+                    return '<div>' +
+                        '<span class="label">' + escape(label) + '</span>' +
+                        (caption ? '<span class="caption">' + escape(caption) + '</span>' : '') +
+                        '</div>';
+                }
+            }
         })[0].selectize;
 
         activeOptions = allOpts;
@@ -172,7 +183,7 @@ function protocolize(url : string){
         var tags : SearchTag[] = response.tags.map(function(tag : string) {
             var tagObj = {
                 title: '#' + tag,
-                url: '#' + tag,
+                // url: '#' + tag,
                 data: "tag:" + tag
             }
             return tagObj;
