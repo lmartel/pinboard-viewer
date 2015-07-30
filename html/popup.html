@@ -1,0 +1,62 @@
+<html ng-app="popupApp" ng-csp>
+    <head>
+        <link href="/css/libs/angular-csp.css" rel="stylesheet" type="text/css">
+        <link href="/css/libs/selectize.bootstrap3.css" rel="stylesheet" type="text/css">
+        <link href="/css/libs/selectize.styles.css" rel="stylesheet" type="text/css">
+        <link href="/css/libs/popup.css" rel="stylesheet" type="text/css">
+        <link href="/css/search.css" rel="stylesheet" type="text/css">
+    </head>
+    <body ng-controller="PopupCtrl">
+        <div id="state-mask" ng-show="isLoading">{{loadingText}}</div>
+
+        <div id="login-window" ng-show="isAnony">
+            <div id="header">
+                <div class="logo-unlogin">Pinboard Viewer - please login</div>
+            </div>
+            <form id="login-form" ng-submit="loginSubmit()">
+                <ul>
+                    <li id="login-error" ng-show="isLoginError">
+                        <span style="color:red;">Login Failed.</span>
+                    </li>
+                    <li>
+                        <span style="width: 60px;display: inline-block;">API Token:</span>
+                        <input id="token" name="token" type="text" size="50" ng-model="userLogin.authToken" placeholder="API Token"/>
+                        <div class="meta">
+                            You can find API token on your <a href="#" title="Pinboard Password page" ng-click="openUrl('https://pinboard.in/settings/password')">Pinboard Password page</a>.
+                        </div>
+                    </li>
+                    <li>
+                        <input id="login" type="submit" value="log in" style="margin-left: 60px" />
+                    </li>
+                </ul>
+            </form>
+        </div>
+
+        <div id="bookmark-window" ng-show="!isAnony">
+            <div id="header">
+                <div class="logo">
+                    <a id="logo-link" href="#" title="Click to open Pinboard.in"
+                       ng-click="openUrl('http:pinboard.in/')">
+                        Pinboard Viewer - (<span id="user">{{userInfo.name}}</span>)
+                    </a>
+                </div>
+                <div class="alert" ng-show="pageInfo.isSaved">{{renderSavedTime(pageInfo.time)}}</div>
+                <div class="logout">[<a href="#" ng-click="logout()">log out</a>]</div>
+            </div>
+
+            <div id="search-loading">{{loadingText}}</div>
+            <div id="search-container" style="display:none">
+              <input id="search" class="bookmarks" type="text" style="width:100%">
+            </div>
+        </div>
+        <script type="text/javascript" src="/js/libs/jquery-1.10.1.min.js"></script>
+        <script type="text/javascript" src="/js/libs/angular.min.js"></script>
+        <script type="text/javascript" src="/js/libs/underscore-min.js"></script>
+        <script type="text/javascript" src="/js/common.js"></script>
+        <script type="text/javascript" src="/js/utils.js"></script>
+        <script type="text/javascript" src="/js/popup.js"></script>
+
+        <script type="text/javascript" src="/js/libs/selectize.min.js"></script>
+        <script type="text/javascript" src="/js/content.js"></script>
+    </body>
+</html>
