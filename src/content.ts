@@ -107,7 +107,7 @@ function protocolize(url : string){
         } else {
             var url = getRaw(itemData);
             chrome.tabs.update({ url: protocolize(url) });
-            exit();
+            window.close();
         }
     }
 
@@ -176,7 +176,6 @@ function protocolize(url : string){
         var tags : SearchTag[] = response.tags.map(function(tag : string) {
             var tagObj = {
                 title: '#' + tag,
-                // url: '#' + tag,
                 data: "tag:" + tag
             }
             return tagObj;
