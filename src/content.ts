@@ -4,6 +4,11 @@ declare var chrome: any;
 declare var $: any;
 declare var _: any;
 
+// Constants from /js/common.js
+// TODO on full Typescript migration: merge into constants.ts
+declare var namekey: any;
+declare var authTokenKey: any;
+
 // Patch bug in Selectize library: preserves hidden `order` field on deleted-and-readded options
 declare var Selectize : any;
 (function(){
@@ -14,10 +19,10 @@ declare var Selectize : any;
     }
 })();
 
-var BOOKMARKS = "localStorage::bookmarks";
-var TAGS = "localStorage::tags";
-var OPTIONS = "localStorage::selectize::options";
-var IS_CACHED = "localStorage::isCached";
+interface User {
+    name: string;
+    token: string;
+}
 
 interface SearchItem {
     title: string;
@@ -74,7 +79,40 @@ function protocolize(url : string){
     return 'http://' + url;
 }
 
-(function connectToPinboardViewerBackend(){ // main IO functions; closure to protect helpers above from mutable state
+function userString(user : User){
+    return user.name + ':' + user.token;
+}
+
+function userUnstring(str : string){
+    var pieces = str.split(':');
+    return {
+        name: pieces[0],
+        token: pieces[1]
+    }
+}
+
+
+var BOOKMARKS = "localStorage::bookmarks";
+var TAGS = "localStorage::tags";
+var OPTIONS = "localStorage::selectize::options";
+var IS_CACHED = "localStorage::isCached";
+var CACHED_USER = "localStorage::cachedUser";
+var USER_NAME = namekey || "pb_viewer::n";
+var USER_TOKEN = authTokenKey || "pb_viewer::auth_token";
+
+function clearCachedBookmarks(){
+    delete localStorage[BOOKMARKS];
+    delete localStorage[TAGS];
+    delete localStorage[IS_CACHED];
+    delete localStorage[CACHED_USER];
+
+    var port = chrome.runtime.connect({ name: "bookmarks" });
+    port.postMessage({ message: "logout" });
+}
+
+declare var teardown;
+teardown = (function connectToPinboardViewerBackend(){ // main IO functions; closure to protect helpers above from mutable state
+    var user : User;
     var port;
     var selectizeControl;
     var allOpts : SearchItem[];
@@ -84,18 +122,28 @@ function protocolize(url : string){
     // Initialize bookmark search: first from local cache, then from backend.
     // Wait a bit before opening a connection to make sure Angular's done dicking around
     if(localStorage[IS_CACHED]){
+        console.log("Loading cached bookmarks...");
         allOpts = JSON.parse(localStorage[OPTIONS]);
         initializeSearch();
     }
     setTimeout(function(){
+        user = userUnstring(localStorage[USER_TOKEN]);
+
         port = chrome.runtime.connect({ name: "bookmarks" });
         port.onMessage.addListener(handleResponse);
-        port.postMessage({ message: "getBookmarks" });
+        port.postMessage({ message: "getBookmarks", name: user.name, token: user.token });
     }, 333);
 
+    return function teardown(){
+        console.log("Cleaning up...");
+        allOpts = null;
+        activeTags = null;
+        activeOptions = null;
+        selectizeControl.destroy();
+        clearCachedBookmarks();
+    }
 
     // Handler functions
-
     function itemAdd(itemData : string){
         if (isTag(itemData)){
             unhandle();
@@ -134,6 +182,7 @@ function protocolize(url : string){
 
     function initializeSearch(){
         $('#search-loading').hide();
+
         activeOptions = filterBy(allOpts, activeTags);
         console.log("Initializing search with " + activeOptions.length + " pins and tags.");
         selectizeControl = $('#search').selectize({
@@ -161,6 +210,7 @@ function protocolize(url : string){
 
         handle();
         $('#search-container').show();
+        $('#search-container .selectize-dropdown').show();
         $('#search-container input').focus();
     }
 
@@ -196,6 +246,7 @@ function protocolize(url : string){
             selectizeControl.destroy();
         }
 
+        localStorage[CACHED_USER] = userString(user);
         localStorage[OPTIONS] = JSON.stringify(allOpts);
         localStorage[IS_CACHED] = "true";
 

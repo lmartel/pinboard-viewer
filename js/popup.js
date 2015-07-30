@@ -42,6 +42,11 @@ app.controller(
          }
 
          $scope.$on('logged-out', function () {
+             console.log("Logged out.");
+             var popup = chrome.extension.getViews({type: 'popup'})[0];
+             popup.teardown();
+             popup.close();
+
              $scope.isAnony = true;
              $scope.isLoading = false;
              $scope.isLoginError = false;

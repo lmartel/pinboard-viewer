@@ -13,10 +13,22 @@ interface State {
 }
 
 var state : State = null;
-var getState = function() : State{
-    if(state) return state;
+var clearState = function() {
+    if(state){
+        state.cache.destroy();
+        state = null;
+    }
+}
+var getState = function(name, token) : State{
+    if(state){
+        if(name == state.secret.getUser() && token == state.secret.get()) {
+            return state;
+        } else {
+            clearState();
+        }
+    }
 
-    var secret = new Secret.SecretToken();
+    var secret = new Secret.SecretToken(name, token);
     var api = new API.PinboardAPI(secret);
     var cache = new Cache.BookmarkCache(chromeLocalStorage);
     state = {
@@ -58,8 +70,14 @@ chrome.runtime.onConnect.addListener(function(port){
     console.log("Received connection request.");
     console.assert(port.name == "bookmarks");
     port.onMessage.addListener(function(request){
-        if (request.message == "getBookmarks"){
-            var state : State = getState();
+        console.log("Received message:");
+        console.log(request);
+        if (request.message == "logout"){
+            clearState();
+        } else if (request.message == "getBookmarks"){
+            if (!request.name || !request.token) return;
+
+            var state : State = getState(request.name, request.token);
             state.cache.getLocalBookmarks(function(cachedBookmarks : Cache.CachedBookmarks){
                 var bookmarksAreCached : boolean = !!cachedBookmarks.bookmarks;
                 if(bookmarksAreCached)

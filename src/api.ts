@@ -39,7 +39,7 @@ module API {
                 return !!params[key];
             }).map(function(key){
                 return key + '=' + params[key];
-            }).concat('auth_token=' + token.get()).join('&');
+            }).concat('auth_token=' + token.getUser() + ':' + token.get()).join('&');
             var requestUrl : string = 'https://api.pinboard.in/v1/' + endpoint + '?' + urlParams;
             console.log("[DEBUG] sending GET to " + requestUrl);
             xhr.open("GET", requestUrl, true);
