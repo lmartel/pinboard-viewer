@@ -43,8 +43,6 @@ function containsAll(needles : any[], haystack : any[]): boolean {
 
 function filterBy(items : SearchItem[], tags : string[]){
     if(tags.length === 0) return items.slice();
-    console.log("Filtering by " + tags);
-    console.log(items);
 
     return items.filter(function(item){
         return isTag(item.data) || containsAll(tags, (<SearchBookmark> item).tags);
@@ -118,7 +116,6 @@ function protocolize(url : string){
         var i = activeTags.indexOf(getRaw(itemData));
         activeTags.splice(i, 1);
         activeOptions = filterBy(allOpts, activeTags);
-        console.log(activeOptions);
         updateControl(selectizeControl, activeOptions, activeTags);
         handle();
     }
@@ -135,6 +132,8 @@ function protocolize(url : string){
 
     function initializeSearch(){
         $('#search-loading').hide();
+        activeOptions = filterBy(allOpts, activeTags);
+        console.log("Initializing search with " + activeOptions.length + " pins and tags.");
         selectizeControl = $('#search').selectize({
             delimiter: ' ',
             create: false,
@@ -145,7 +144,7 @@ function protocolize(url : string){
             labelField: 'title',
             valueField: 'data',
             searchField: ['title', 'url'],
-            options: filterBy(allOpts, activeTags),
+            options: activeOptions,
             render: {
                 option: function(item, escape) {
                     var label = item.title;
@@ -157,8 +156,6 @@ function protocolize(url : string){
                 }
             }
         })[0].selectize;
-
-        activeOptions = allOpts;
 
         handle();
         $('#search-container').show();

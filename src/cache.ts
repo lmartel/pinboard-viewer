@@ -36,8 +36,8 @@ module Cache {
                         console.log("Cache empty (or disabled). Refreshing all.")
                         api.getAllBookmarks(cacheBeforeCallback);
                     } else if (prevUpdate.getTime() < latestUpdate.getTime()){
-                        console.log("There's a new update!");
                         api.getBookmarksSince(prevUpdate, function(newBookmarks){
+                            console.log("Found " + newBookmarks.length + " new bookmarks.");
                             _self.getBookmarksFromStorage(function(oldBookmarks){
                                 var bookmarks = oldBookmarks.concat(newBookmarks);
                                 cacheBeforeCallback(bookmarks);

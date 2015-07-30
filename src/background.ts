@@ -6,16 +6,26 @@
 var chrome: any;
 var chromeLocalStorage : Cache.CacheStorage = chrome.storage.local;
 
-var state = (function(){
+interface State {
+    secret: Secret.SecretToken;
+    api: API.PinboardAPI;
+    cache: Cache.BookmarkCache;
+}
+
+var state : State = null;
+var getState = function() : State{
+    if(state) return state;
+
     var secret = new Secret.SecretToken();
     var api = new API.PinboardAPI(secret);
     var cache = new Cache.BookmarkCache(chromeLocalStorage);
-    return {
+    state = {
         secret: secret,
         api: api,
         cache: cache
     };
-})()
+    return state;
+}
 
 function debug(o){ console.log(o); return o; }
 
@@ -29,6 +39,8 @@ function extractTags (bookmarks : Types.Bookmark[]): Types.BookmarkList {
             return tags;
         }, {})
     );
+
+    console.log("Found " + bookmarks.length + " bookmarks with " + tags.length + " tags.");
 
     return {
         bookmarks: bookmarks,
@@ -47,6 +59,7 @@ chrome.runtime.onConnect.addListener(function(port){
     console.assert(port.name == "bookmarks");
     port.onMessage.addListener(function(request){
         if (request.message == "getBookmarks"){
+            var state : State = getState();
             state.cache.getLocalBookmarks(function(cachedBookmarks : Cache.CachedBookmarks){
                 var bookmarksAreCached : boolean = !!cachedBookmarks.bookmarks;
                 if(bookmarksAreCached)

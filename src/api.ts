@@ -3,7 +3,7 @@
 
 module API {
     export interface APIParams {
-        fromdt?: Date;
+        fromdt?: string;
     }
 
     export class PinboardAPI {
@@ -21,7 +21,7 @@ module API {
         }
 
         getBookmarksSince(prevUpdate: Date, cb: (bookmarks: Types.Bookmark[]) => void){
-            this.apiGet('posts/all', this.token, { fromdt: prevUpdate }, function(xmlDoc){
+            this.apiGet('posts/all', this.token, { fromdt: this.formatDateUTC(prevUpdate) }, function(xmlDoc){
                 var elem: HTMLScriptElement = xmlDoc.getElementsByTagName('posts').item(0);
                 var posts : NodeList = elem.getElementsByTagName('post');
                 var bookmarks : Types.Bookmark[] = [];
@@ -49,6 +49,23 @@ module API {
             }
             xhr.onerror = function(e){ console.log("XHR error: " + e); }
             xhr.send();
+        }
+
+        private formatDateUTC(date: Date): string {
+            return [
+                date.getUTCFullYear(),
+                '-',
+                date.getUTCMonth() + 1, // goddamnit javascript
+                '-',
+                date.getUTCDate(),
+                'T',
+                date.getUTCHours(),
+                ':',
+                date.getUTCMinutes(),
+                ':',
+                date.getUTCSeconds(),
+                'Z'
+            ].join('');
         }
     }
 }
