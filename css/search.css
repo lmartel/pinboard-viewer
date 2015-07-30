@@ -1,3 +1,7 @@
 .selectize-input .item:not(.active) {
     color: #11A !important;
 }
+
+.selectize-dropdown {
+    display: block !important;
+}

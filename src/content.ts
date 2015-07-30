@@ -126,20 +126,12 @@ function protocolize(url : string){
     function handle(){
         selectizeControl.on('item_add', itemAdd);
         selectizeControl.on('item_remove', itemRemove);
-        selectizeControl.on('blur', exit);
-        selectizeControl.on('dropdown_close', exit);
     }
 
     function unhandle(){
         selectizeControl.off('item_add', itemAdd);
         selectizeControl.off('item_remove', itemRemove);
-        selectizeControl.off('blur', exit);
-        selectizeControl.off('dropdown_close', exit);
     }
-
-    var exit = function() {
-        window.close()
-    };
 
     function initializeSearch(){
         $('#search-loading').hide();
@@ -149,6 +141,7 @@ function protocolize(url : string){
             maxItems: null,
             maxOptions: null,
             selectOnTab: true,
+            openOnFocus: false,
             labelField: 'title',
             valueField: 'data',
             searchField: ['title', 'url'],
@@ -169,7 +162,7 @@ function protocolize(url : string){
 
         handle();
         $('#search-container').show();
-        selectizeControl.focus();
+        $('#search-container input').focus();
     }
 
     function handleResponse(response) {
