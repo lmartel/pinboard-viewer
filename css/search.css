@@ -1,0 +1,3 @@
+.selectize-input .item:not(.active) {
+    color: #11A !important;
+}
