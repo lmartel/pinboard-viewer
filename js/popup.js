@@ -28,7 +28,9 @@ app.controller(
              $scope.$apply();
          });
 
-         $scope.$on('login-succeed', function () {
+         $scope.$on('login-succeed', renderPopup);
+
+         function renderPopup() {
              chrome.tabs.getSelected(null, function (tab) {
                  $scope.isLoading = false;
                  $scope.isAnony = false;
@@ -37,7 +39,7 @@ app.controller(
                      location.search = "?focusHack";
                  }
              });
-         });
+         }
 
          $scope.$on('logged-out', function () {
              $scope.isAnony = true;
@@ -94,6 +96,6 @@ app.controller(
          if ($scope.isAnony) {
              $scope.isLoginError = false;
          } else {
-             $scope.$emit('login-succeed');
+             renderPopup();
          }
      }]);

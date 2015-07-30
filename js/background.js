@@ -18,7 +18,6 @@ var logout = function () {
     localStorage.removeItem(namekey);
     localStorage.removeItem(pwdkey);
     localStorage.removeItem(authTokenKey);
-    localStorage.removeItem(nopingKey);
     var popup = chrome.extension.getViews({type: 'popup'})[0];
     popup && popup.$rootScope &&
         popup.$rootScope.$broadcast('logged-out');
