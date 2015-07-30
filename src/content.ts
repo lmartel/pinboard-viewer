@@ -74,22 +74,25 @@ function protocolize(url : string){
     return 'http://' + url;
 }
 
-function connectToPinboardViewerBackend(){ // main IO functions; closure to protect helpers above from mutable state
-    var port = chrome.runtime.connect({ name: "bookmarks" });
+(function connectToPinboardViewerBackend(){ // main IO functions; closure to protect helpers above from mutable state
+    var port;
     var selectizeControl;
     var allOpts : SearchItem[];
     var activeTags : string[] = [];
     var activeOptions : SearchItem[];
 
-    // Initialize bookmark search
-    port.onMessage.addListener(handleResponse);
+    // Initialize bookmark search: first from local cache, then from backend.
+    // Wait a bit before opening a connection to make sure Angular's done dicking around
     if(localStorage[IS_CACHED]){
         allOpts = JSON.parse(localStorage[OPTIONS]);
         initializeSearch();
-        port.postMessage({ message: "getBookmarks" });
-    } else {
-        port.postMessage({ message: "getBookmarks" });
     }
+    setTimeout(function(){
+        port = chrome.runtime.connect({ name: "bookmarks" });
+        port.onMessage.addListener(handleResponse);
+        port.postMessage({ message: "getBookmarks" });
+    }, 333);
+
 
     // Handler functions
 
@@ -198,4 +201,4 @@ function connectToPinboardViewerBackend(){ // main IO functions; closure to prot
 
         initializeSearch();
     }
-}
+})();

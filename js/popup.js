@@ -38,7 +38,6 @@ app.controller(
                  if (location.search != "?focusHack") {
                      location.search = "?focusHack";
                  }
-                 connectToPinboardViewerBackend();
              });
          }
 
