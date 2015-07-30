@@ -52,6 +52,7 @@ module API {
         }
 
         private formatDateUTC(date: Date): string {
+            if (!date) return null;
             return [
                 date.getUTCFullYear(),
                 '-',

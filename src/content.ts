@@ -74,8 +74,7 @@ function protocolize(url : string){
     return 'http://' + url;
 }
 
-(function(){ // main IO functions; closure to protect helpers above from mutable state
-
+function connectToPinboardViewerBackend(){ // main IO functions; closure to protect helpers above from mutable state
     var port = chrome.runtime.connect({ name: "bookmarks" });
     var selectizeControl;
     var allOpts : SearchItem[];
@@ -199,5 +198,4 @@ function protocolize(url : string){
 
         initializeSearch();
     }
-
-})();
+}
