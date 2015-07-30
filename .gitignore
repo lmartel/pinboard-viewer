@@ -6,3 +6,7 @@
 
 # grunt and its dependencies
 node_modules
+
+# ignore compiled js (names hardcoded for now; TODO set grunt up better)
+/js/viewer.js
+/js/content.js
