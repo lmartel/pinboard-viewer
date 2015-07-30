@@ -1,0 +1,8 @@
+# misc metadata, mostly grunt and typescript stuff
+.DS_STORE
+.tscache
+.baseDir.js
+*.js.map
+
+# grunt and its dependencies
+node_modules
