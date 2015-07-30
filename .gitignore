@@ -8,5 +8,6 @@
 node_modules
 
 # ignore compiled js (names hardcoded for now; TODO set grunt up better)
+release/
 /js/viewer.js
 /js/content.js
