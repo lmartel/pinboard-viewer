@@ -48,10 +48,12 @@ chrome.runtime.onConnect.addListener(function(port){
     port.onMessage.addListener(function(request){
         if (request.message == "getBookmarks"){
             state.cache.getLocalBookmarks(function(cachedBookmarks : Cache.CachedBookmarks){
-                tryPost(port, extractTags(cachedBookmarks.bookmarks));
+                var bookmarksAreCached : boolean = !!cachedBookmarks.bookmarks;
+                if(bookmarksAreCached)
+                    tryPost(port, extractTags(cachedBookmarks.bookmarks));
 
                 state.cache.getBookmarks(state.api, function(refreshedBookmarks : Cache.CachedBookmarks){
-                    if (cachedBookmarks.updated < refreshedBookmarks.updated)
+                    if (!bookmarksAreCached || cachedBookmarks.updated < refreshedBookmarks.updated)
                         tryPost(port, extractTags(refreshedBookmarks.bookmarks));
                 });
             });
