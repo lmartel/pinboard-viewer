@@ -15,11 +15,25 @@
   </header>
   <section>
     <p>
+      <span class="checkbox" style="width:12em">
+        <input type="button" value="Resync Everything" id="resync"/>
+      </span>
+        <label for="resync">Force a full refetch from the Pinboard API.</label>
+      <span class="meta">
+        <br/>
+        New bookmarks are fetched automatically,
+        but a resync will remove deleted bookmarks from the cache and update the tags on old bookmarks. Basically, press this if something seems weird.
+      </span>
+    </p>
+  <br/>
+  </section>
+  <section>
+    <p>
       <span class="checkbox"><input type="checkbox" id="does-nothing" /></span>
-      <label for="all-private">There are no options yet!</label>
+      <label for="does-nothing">There are no configuration options yet!</label>
       <br/>
       <span class="meta">
-        Feel free to check this box to make yourself feel better, though.
+        Feel free to check this box to make yourself feel better, though. It will be saved.
       </span>
     </p>
     <p>

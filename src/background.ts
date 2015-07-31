@@ -13,18 +13,19 @@ interface State {
 }
 
 var state : State = null;
-var clearState = function() {
+var clearState = function(cb) {
     if(state){
-        state.cache.destroy();
+        state.cache.destroy(cb);
         state = null;
     }
+    console.log("State cleared.");
 }
 var getState = function(name, token) : State{
     if(state){
         if(name == state.secret.getUser() && token == state.secret.get()) {
             return state;
         } else {
-            clearState();
+            clearState(null);
         }
     }
 
@@ -73,7 +74,7 @@ chrome.runtime.onConnect.addListener(function(port){
         console.log("Received message:");
         console.log(request);
         if (request.message == "logout"){
-            clearState();
+            clearState(null);
         } else if (request.message == "getBookmarks"){
             if (!request.name || !request.token) return;
 
@@ -93,4 +94,14 @@ chrome.runtime.onConnect.addListener(function(port){
         }
         return true; // Response will be sent async
     });
+});
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
+    if (request.message == "logout"){
+        clearState(function(){
+            sendResponse({ success: true });
+        });
+    } else {
+        sendResponse({ success: false });
+    }
 });

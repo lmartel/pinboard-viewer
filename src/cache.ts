@@ -7,7 +7,7 @@ module Cache {
     export interface CacheStorage {
         get(keys: any, callback: (data: any) => void): void;
         set(kvPairs: any, after: () => void): void;
-        clear(): void;
+        clear(cb: () => void): void;
     }
 
     export interface CachedBookmarks {
@@ -18,8 +18,8 @@ module Cache {
     export class BookmarkCache {
         constructor(private storage: CacheStorage) {};
 
-        destroy(): void {
-            this.storage.clear();
+        destroy(cb : () => void): void {
+            this.storage.clear(cb);
         }
 
         getBookmarks(api : API.PinboardAPI, clientcb : (bookmarks : CachedBookmarks) => void): void {
